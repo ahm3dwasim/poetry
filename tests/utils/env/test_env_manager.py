@@ -645,6 +645,31 @@ def test_get_prefers_explicitly_activated_virtualenvs_over_env_var(
 
 
 @pytest.mark.parametrize("env_var", ["VIRTUAL_ENV", "CONDA_PREFIX"])
+def test_get_prefers_in_project_venv_over_env_var(
+    manager: EnvManager,
+    poetry: Poetry,
+    in_project_venv_dir: Path,
+    env_var: str,
+    mocker: MockerFixture,
+) -> None:
+    """An in-project .venv should be preferred over an externally activated
+    environment exposed via VIRTUAL_ENV/CONDA_PREFIX, consistently with an
+    explicitly activated virtualenv in the cache directory.
+
+    See: https://github.com/python-poetry/poetry/issues/2056
+    """
+    os.environ.pop("VIRTUAL_ENV", None)
+    os.environ.pop("CONDA_PREFIX", None)
+    os.environ[env_var] = "/environment/prefix"
+    mocker.patch(
+        "poetry.utils.env.virtual_env.VirtualEnv.__init__",
+        lambda self, *args, **kwargs: setattr(self, "_path", args[0]),
+    )
+    venv = manager.get()
+    assert venv.path == in_project_venv_dir
+
+
+@pytest.mark.parametrize("env_var", ["VIRTUAL_ENV", "CONDA_PREFIX"])
 def test_get_ignores_empty_env_prefix(
     manager: EnvManager,
     poetry: Poetry,

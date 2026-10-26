@@ -219,7 +219,12 @@ class EnvManager:
         # can leave CONDA_PREFIX set to an empty string after deactivation.
         in_venv = bool(env_prefix) and conda_env_name != "base"
 
-        if not in_venv or env is not None:
+        # A project-specific environment (an explicitly activated environment
+        # recorded in envs.toml, or an in-project .venv) takes precedence over an
+        # externally activated environment exposed via VIRTUAL_ENV/CONDA_PREFIX.
+        # This keeps the treatment of VIRTUAL_ENV consistent regardless of whether
+        # the project uses an in-project .venv or a virtualenv in the cache dir.
+        if not in_venv or env is not None or self.in_project_venv_exists():
             # Checking if a local virtualenv exists
             if self.in_project_venv_exists():
                 venv = self.in_project_venv
